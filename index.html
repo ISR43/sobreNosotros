@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoIA - Automatizaciones Inteligentes</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Estilos del chatbot -->
+    <style>
+        #n8n-chat {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: Arial, sans-serif;
+        }
+        
+        .chat-toggle {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease;
+        }
+        
+        .chat-toggle:hover {
+            transform: scale(1.1);
+        }
+        
+        .chat-window {
+            display: none;
+            position: absolute;
+            bottom: 70px;
+            right: 0;
+            width: 350px;
+            height: 500px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            overflow: hidden;
+            border: 1px solid #e1e5e9;
+        }
+        
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .chat-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+        
+        .chat-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: background 0.2s ease;
+        }
+        
+        .chat-close:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .chat-messages {
+            height: 380px;
+            overflow-y: auto;
+            padding: 16px;
+            background: #f8f9fa;
+        }
+        
+        .message {
+            margin-bottom: 12px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .message-content {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .bot-message .message-content {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .user-message {
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .user-message .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+        
+        .chat-input-container {
+            padding: 16px;
+            background: white;
+            border-top: 1px solid #e1e5e9;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        #chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #e1e5e9;
+            border-radius: 24px;
+            outline: none;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+        }
+        
+        #chat-input:focus {
+            border-color: #667eea;
+        }
+        
+        .chat-send {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease;
+        }
+        
+        .chat-send:hover {
+            transform: scale(1.05);
+        }
+        
+        .typing-indicator .message-content {
+            background: white;
+            padding: 16px 20px;
+        }
+        
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .typing-dots span {
+            width: 6px;
+            height: 6px;
+            background: #ccc;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+        
+        .typing-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typing {
+            0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+            30% { opacity: 1; transform: translateY(-8px); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 480px) {
+            .chat-window {
+                width: 300px;
+                height: 450px;
+                right: -10px;
+            }
+            
+            .chat-messages {
+                height: 330px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <nav class="nav">
+            <div class="logo">
+                <i class="fas fa-brain"></i>
+                <span>TuringIAndCarri</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#inicio">Inicio</a></li>
+                <li><a href="#servicios">Servicios</a></li>
+                <li><a href="#beneficios">Beneficios</a></li>
+                <li><a href="#contacto">Contacto</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="inicio" class="hero">
+            <div class="hero-content">
+                <h1 class="hero-title">Automatizaciones de IA que <span class="highlight">Transforman</span> tu Negocio</h1>
+                <p class="hero-subtitle">Optimiza procesos, reduce costos y aumenta la productividad con soluciones de inteligencia artificial personalizadas</p>
+                <div class="hero-buttons">
+                    <button class="btn btn-primary">Comenzar Ahora</button>
+                    <button class="btn btn-secondary">Ver Demo</button>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="floating-card">
+                    <i class="fas fa-robot"></i>
+                    <span>IA Avanzada</span>
+                </div>
+                <div class="floating-card">
+                    <i class="fas fa-cogs"></i>
+                    <span>Automatización</span>
+                </div>
+                <div class="floating-card">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Resultados</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="servicios" class="services">
+            <div class="container">
+                <h2 class="section-title">Nuestros Servicios</h2>
+                <div class="services-grid">
+                    <div class="service-card">
+                        <div class="service-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <h3>Chatbots Inteligentes</h3>
+                        <p>Automatiza la atención al cliente con chatbots que entienden y responden de manera natural</p>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <h3>Procesamiento de Documentos</h3>
+                        <p>Extrae y procesa información de documentos automáticamente con precisión superior</p>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <h3>Automatización de Email</h3>
+                        <p>Clasifica, responde y gestiona emails de manera inteligente y personalizada</p>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <h3>Análisis de Datos</h3>
+                        <p>Convierte datos en insights accionables con análisis predictivo avanzado</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="beneficios" class="benefits">
+            <div class="container">
+                <h2 class="section-title">¿Por qué Elegir TuringIAndCarri?</h2>
+                <div class="benefits-grid">
+                    <div class="benefit-item">
+                        <div class="benefit-number">01</div>
+                        <h3>Ahorro de Tiempo</h3>
+                        <p>Reduce hasta un 80% el tiempo en tareas repetitivas</p>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="benefit-number">02</div>
+                        <h3>Reducción de Costos</h3>
+                        <p>Disminuye los gastos operativos significativamente</p>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="benefit-number">03</div>
+                        <h3>Mayor Precisión</h3>
+                        <p>Elimina errores humanos en procesos críticos</p>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="benefit-number">04</div>
+                        <h3>Escalabilidad</h3>
+                        <p>Crece con tu negocio sin límites de capacidad</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="contacto" class="contact">
+            <div class="container">
+                <h2 class="section-title">¿Listo para Transformar tu Negocio?</h2>
+                <p class="contact-subtitle">Contáctanos para una consulta gratuita</p>
+                <div class="contact-info">
+                    <div class="contact-item">
+                        <i class="fas fa-phone"></i>
+                        <span>+591 74356007</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>nnpractica.com</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span> ---</span>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-large">Solicitar Consulta Gratuita</button>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <i class="fas fa-brain"></i>
+                    <span>TuringIAndCarri</span>
+                </div>
+                <div class="footer-links">
+                    <a href="#">Privacidad</a>
+                    <a href="#">Términos</a>
+                    <a href="#">Soporte</a>
+                </div>
+                <div class="footer-social">
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 TuringIAndCarri. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Contenedor del chatbot -->
+    <div id="n8n-chat"></div>
+
+    <!-- Script principal que maneja todo -->
+    <script src="script.js"></script>
+    
+    <!-- Script simplificado del chatbot -->
+    <script>
+        // Chatbot simplificado - se conectará al webhook desde script.js
+        class SimpleChatbot {
+            constructor() {
+                this.isOpen = false;
+                this.sessionId = this.generateSessionId();
+                this.createChatWidget();
+                this.setupEventListeners();
+                // Hacer el chatbot accesible globalmente para script.js
+                window.chatbot = this;
+            }
+            
+            generateSessionId() {
+                return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+            
+            createChatWidget() {
+                const chatContainer = document.getElementById('n8n-chat');
+                chatContainer.innerHTML = `
+                    <!-- Botón flotante -->
+                    <div id="chat-toggle" class="chat-toggle">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    
+                    <!-- Ventana de chat -->
+                    <div id="chat-window" class="chat-window">
+                        <div class="chat-header">
+                            <div class="chat-title">
+                                <i class="fas fa-brain"></i>
+                                <span>AutoIA Assistant</span>
+                            </div>
+                            <button id="chat-close" class="chat-close">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="chat-messages" id="chat-messages">
+                            <div class="message bot-message">
+                                <div class="message-content">
+                                    ¡Hola! Soy el asistente virtual de <strong>AutoIA</strong>. ¿En qué puedo ayudarte con tus automatizaciones de IA?
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chat-input-container">
+                            <input type="text" id="chat-input" placeholder="Escribe tu mensaje..." />
+                            <button id="chat-send" class="chat-send">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            setupEventListeners() {
+                const toggle = document.getElementById('chat-toggle');
+                const close = document.getElementById('chat-close');
+                const input = document.getElementById('chat-input');
+                const send = document.getElementById('chat-send');
+                
+                toggle.addEventListener('click', () => this.toggleChat());
+                close.addEventListener('click', () => this.closeChat());
+                send.addEventListener('click', () => this.sendMessage());
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.sendMessage();
+                });
+            }
+            
+            toggleChat() {
+                const window = document.getElementById('chat-window');
+                if (this.isOpen) {
+                    this.closeChat();
+                } else {
+                    window.style.display = 'block';
+                    this.isOpen = true;
+                    document.getElementById('chat-input').focus();
+                }
+            }
+            
+            closeChat() {
+                const window = document.getElementById('chat-window');
+                window.style.display = 'none';
+                this.isOpen = false;
+            }
+            
+            async sendMessage() {
+                const input = document.getElementById('chat-input');
+                const message = input.value.trim();
+                
+                if (!message) return;
+                
+                // Mostrar mensaje del usuario
+                this.addMessage(message, 'user');
+                input.value = '';
+                
+                // Mostrar indicador de "escribiendo..."
+                this.addTypingIndicator();
+                
+                try {
+                    // Usar la función del script.js para enviar al webhook
+                    const data = {
+                        userMessage: message,
+                        sessionId: this.sessionId,
+                        source: 'AutoIA-Chat'
+                    };
+                    
+                    const result = await window.sendToWebhook(window.WEBHOOKS.chat, data);
+                    
+                    // Remover indicador de "escribiendo..."
+                    this.removeTypingIndicator();
+                    
+                    // Mostrar respuesta del bot
+                    let botMessage = 'Lo siento, no pude procesar tu mensaje.';
+                    
+                    if (result) {
+                        // Buscar la respuesta en diferentes ubicaciones
+                        if (result.respuestass) {
+                            botMessage = result.respuestass;
+                        } else if (result.output) {
+                            botMessage = result.output;
+                        } else if (result.message) {
+                            botMessage = result.message;
+                        } else if (result.response) {
+                            botMessage = result.response;
+                        } else if (typeof result === 'string') {
+                            botMessage = result;
+                        } else if (Array.isArray(result) && result.length > 0) {
+                            const firstItem = result[0];
+                            if (firstItem.respuestass) {
+                                botMessage = firstItem.respuestass;
+                            } else if (firstItem.output) {
+                                botMessage = firstItem.output;
+                            }
+                        }
+                    }
+                    
+                    this.addMessage(botMessage, 'bot');
+                    
+                } catch (error) {
+                    console.error('Error en el chat:', error);
+                    this.removeTypingIndicator();
+                    this.addMessage('Lo siento, hay un problema de conexión. Intenta más tarde.', 'bot');
+                }
+            }
+            
+            addMessage(message, type) {
+                const messagesContainer = document.getElementById('chat-messages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${type}-message`;
+                messageDiv.innerHTML = `<div class="message-content">${message}</div>`;
+                messagesContainer.appendChild(messageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+            
+            addTypingIndicator() {
+                const messagesContainer = document.getElementById('chat-messages');
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'message bot-message typing-indicator';
+                typingDiv.id = 'typing-indicator';
+                typingDiv.innerHTML = `
+                    <div class="message-content">
+                        <span class="typing-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </span>
+                    </div>
+                `;
+                messagesContainer.appendChild(typingDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+            
+            removeTypingIndicator() {
+                const typingIndicator = document.getElementById('typing-indicator');
+                if (typingIndicator) {
+                    typingIndicator.remove();
+                }
+            }
+        }
+        
+        // Inicializar el chatbot cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            new SimpleChatbot();
+        });
+    </script>
+</body>
+</html>
