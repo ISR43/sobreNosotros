@@ -2,7 +2,7 @@
 const WEBHOOKS = {
     comenzarAhora: 'https://n8n-n8n.kapi8o.easypanel.host/webhook/comenzar_ahora',
     verDemo: 'http://localhost:5678/webhook/ver_demo',
-    chat: 'https://n8n-n8n.kapi8o.easypanel.host/webhook-test/Pagina-inteligente'
+    chat: 'https://n8n-n8n.kapi8o.easypanel.host/webhook/Pagina-inteligente'
 };
 
 // Función para enviar datos a webhooks
